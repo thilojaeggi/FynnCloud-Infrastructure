@@ -56,11 +56,6 @@ services:
     environment:
       DATABASE_URL: postgresql://fynncloud:${DB_PASSWORD}@db:5432/fynncloud
       STORAGE_PATH: /app/Storage/
-      S3_BUCKET: ${S3_BUCKET}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_REGION: ${AWS_REGION}
-      AWS_ENDPOINT: ${AWS_ENDPOINT}
       APP_NAME: ${APP_NAME}
       PRIMARY_COLOR: ${PRIMARY_COLOR}
       JWT_SECRET: ${JWT_SECRET}
