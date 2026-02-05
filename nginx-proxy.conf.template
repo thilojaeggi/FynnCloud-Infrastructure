@@ -1,7 +1,10 @@
 server {
-    listen 80;
+    listen 443 ssl;
     server_name _;
-    
+
+    # Paths to the files you just generated
+    ssl_certificate     /etc/nginx/certs/localhost.crt;
+    ssl_certificate_key /etc/nginx/certs/localhost.key;
     client_max_body_size ${MAX_BODY_SIZE}M;
 
     location /api {
@@ -18,7 +21,7 @@ server {
     }
 
     location / {
-        proxy_pass http://frontend:80;
+        proxy_pass http://web:80;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
