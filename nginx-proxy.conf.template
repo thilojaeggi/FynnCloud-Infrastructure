@@ -3,6 +3,7 @@ server {
     server_name _;
 
     client_max_body_size ${MAX_BODY_SIZE}M;
+    client_body_buffer_size ${MAX_BODY_SIZE}M;
 
     location /api {
         proxy_pass http://backend:8080;
@@ -10,13 +11,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        # Disable request buffering - stream uploads directly to backend
         proxy_request_buffering off;
-        
-        # Increase buffer size to avoid small requests hitting disk
-        client_body_buffer_size 128k;
-    
-        # Allow nginx to handle large uploads without timing out
         proxy_read_timeout 300s;
         proxy_send_timeout 300s;
     }
