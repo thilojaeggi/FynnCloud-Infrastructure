@@ -1,0 +1,18 @@
+{{- if .Values.backend.storage.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "fynncloud.fullname" . }}-backend-storage
+  labels:
+    {{- include "fynncloud.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  accessModes:
+    - {{ .Values.backend.storage.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.backend.storage.size | quote }}
+  {{- if .Values.backend.storage.storageClass }}
+  storageClassName: {{ .Values.backend.storage.storageClass | quote }}
+  {{- end }}
+{{- end }}

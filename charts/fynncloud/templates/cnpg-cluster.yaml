@@ -1,0 +1,33 @@
+{{- if .Values.cnpg.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "fynncloud.fullname" . }}-{{ .Values.cnpg.name }}
+  labels:
+    {{- include "fynncloud.labels" . | nindent 4 }}
+spec:
+  instances: {{ .Values.cnpg.instances }}
+  
+  # Allow non-SSL connections if sslMode is 'disable'
+  # We add a permissive pg_hba rule at the top.
+  {{- if eq .Values.cnpg.sslMode "disable" }}
+  pg_hba:
+    - host all all all scram-sha-256
+  {{- end }}
+  
+  # Bootstrap configuration
+  bootstrap:
+    initdb:
+      database: {{ .Values.cnpg.bootstrap.initdb.database }}
+      owner: {{ .Values.cnpg.bootstrap.initdb.owner }}
+      # We let CNPG generate the password, but we reference a secret definition
+      # so we can control it if needed, or stick to the simple default behavior.
+      # For now, let's stick to the generated 'app' secret which CNPG manages.
+
+  # Storage configuration
+  storage:
+    size: {{ .Values.cnpg.storage.size }}
+    {{- if .Values.cnpg.storage.storageClass }}
+    storageClass: {{ .Values.cnpg.storage.storageClass }}
+    {{- end }}
+{{- end }}

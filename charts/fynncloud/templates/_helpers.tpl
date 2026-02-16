@@ -1,0 +1,156 @@
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "fynncloud.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+*/}}
+{{- define "fynncloud.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "fynncloud.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "fynncloud.labels" -}}
+helm.sh/chart: {{ include "fynncloud.chart" . }}
+{{ include "fynncloud.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "fynncloud.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "fynncloud.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+PostgreSQL host
+- CNPG Default RW Service: [cluster-name]-rw
+- External: .Values.externalPostgresql.host
+*/}}
+{{- define "fynncloud.postgresql.host" -}}
+{{- if .Values.cnpg.enabled }}
+{{- printf "%s-%s-rw" (include "fynncloud.fullname" .) .Values.cnpg.name }}
+{{- else }}
+{{- .Values.externalPostgresql.host }}
+{{- end }}
+{{- end }}
+
+{{/*
+PostgreSQL port
+*/}}
+{{- define "fynncloud.postgresql.port" -}}
+{{- if .Values.cnpg.enabled }}
+{{- printf "5432" }}
+{{- else }}
+{{- .Values.externalPostgresql.port | toString }}
+{{- end }}
+{{- end }}
+
+{{/*
+PostgreSQL username
+*/}}
+{{- define "fynncloud.postgresql.username" -}}
+{{- if .Values.cnpg.enabled }}
+{{- .Values.cnpg.bootstrap.initdb.owner }}
+{{- else }}
+{{- .Values.externalPostgresql.username }}
+{{- end }}
+{{- end }}
+
+{{/*
+PostgreSQL database
+*/}}
+{{- define "fynncloud.postgresql.database" -}}
+{{- if .Values.cnpg.enabled }}
+{{- .Values.cnpg.bootstrap.initdb.database }}
+{{- else }}
+{{- .Values.externalPostgresql.database }}
+{{- end }}
+{{- end }}
+
+{{/*
+PostgreSQL Secret Name
+- CNPG Default App Secret: [cluster-name]-app
+- External: existingSecret or managed secret
+*/}}
+{{- define "fynncloud.postgresql.secretName" -}}
+{{- if .Values.cnpg.enabled }}
+{{- printf "%s-%s-app" (include "fynncloud.fullname" .) .Values.cnpg.name }}
+{{- else if .Values.externalPostgresql.existingSecret }}
+{{- .Values.externalPostgresql.existingSecret }}
+{{- else }}
+{{- printf "%s-secrets" (include "fynncloud.fullname" .) }}
+{{- end }}
+{{- end }}
+
+{{/*
+PostgreSQL Password Key
+- CNPG App Secret has 'password' key (along with 'username', 'dbname', etc.)
+- External/Managed has 'postgres-password'
+*/}}
+{{- define "fynncloud.postgresql.secretKey" -}}
+{{- if .Values.cnpg.enabled }}
+{{- printf "password" }}
+{{- else }}
+{{- printf "postgres-password" }}
+{{- end }}
+{{- end }}
+
+{{/*
+JWT secret name
+*/}}
+{{- define "fynncloud.jwt.secretName" -}}
+{{- if .Values.backend.existingSecret }}
+{{- .Values.backend.existingSecret }}
+{{- else }}
+{{- printf "%s-secrets" (include "fynncloud.fullname" .) }}
+{{- end }}
+{{- end }}
+
+{{/*
+PostgreSQL SSL Mode
+*/}}
+{{- define "fynncloud.postgresql.sslMode" -}}
+{{- if .Values.cnpg.enabled }}
+{{- .Values.cnpg.sslMode }}
+{{- else }}
+{{- .Values.externalPostgresql.sslMode }}
+{{- end }}
+{{- end }}
+
+{{/*
+HTTPRoute resource name
+*/}}
+{{- define "fynncloud.httpRoute.name" -}}
+{{- if .Values.httpRoute.nameOverride }}
+{{- .Values.httpRoute.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- include "fynncloud.fullname" . }}
+{{- end }}
+{{- end }}

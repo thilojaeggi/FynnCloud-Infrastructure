@@ -1,0 +1,186 @@
+# =============================================================================
+# FynnCloud Helm Chart - values.yaml (CloudNativePG Edition)
+# =============================================================================
+nameOverride: ""
+fullnameOverride: ""
+
+# =============================================================================
+# CloudNativePG Configuration
+# =============================================================================
+# Requires the CloudNativePG operator to be installed in the cluster.
+# https://cloudnative-pg.io/
+cnpg:
+  enabled: true
+  name: "cluster" # Suffix for the Cluster resource name
+  instances: 3
+
+  # SSL Mode for connection string (disable, require, verify-ca, etc.)
+  sslMode: "disable"
+
+  # Storage configuration for the PVCs
+  storage:
+    size: 1Gi
+    # storageClass: ""
+
+  # Bootstrap configuration
+  # By default, creates a new database `app` with user `app`.
+  # We override this to match our app name.
+  bootstrap:
+    initdb:
+      database: fynncloud
+      owner: fynncloud
+      secret:
+        name: fynncloud-cnpg-initial-password
+
+  # Backup configuration (example structure, adjust as needed)
+  # backup:
+  #   barmanObjectStore:
+  #     destinationPath: s3://bucket/path
+  #     endpointURL: http://minio:9000
+  #     s3Credentials: ...
+
+# =============================================================================
+# External PostgreSQL
+# =============================================================================
+# Use this when you have an existing PostgreSQL instance (e.g. RDS, Cloud SQL)
+# and don't want the chart to deploy CNPG. Requires cnpg.enabled=false.
+externalPostgresql:
+  host: ""
+  port: 5432
+  username: fynncloud
+  password: ""
+  database: fynncloud
+  sslMode: "require"
+  existingSecret: ""
+
+# =============================================================================
+# Backend Configuration
+# =============================================================================
+backend:
+  enabled: true
+  image:
+    repository: ghcr.io/fynncloudproject/server
+    tag: latest
+    pullPolicy: Always
+  replicas: 3
+  service:
+    type: ClusterIP
+    port: 8080
+  resources: {}
+  env:
+    APP_NAME: "FynnCloud"
+    PRIMARY_COLOR: "#007bff"
+    JWT_SECRET: "changeme"
+    CORS_ALLOWED_ORIGINS: "*"
+    FRONTEND_URL: "http://localhost"
+    MAX_CHUNK_SIZE: "100"
+    MAX_BODY_SIZE: "100"
+  existingSecret: ""
+  storage:
+    enabled: true
+    size: 5Gi
+    accessMode: ReadWriteOnce
+    # storageClass: ""
+
+# =============================================================================
+# Web Frontend Configuration
+# =============================================================================
+web:
+  enabled: true
+  image:
+    repository: ghcr.io/fynncloudproject/web
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 80
+  resources: {}
+
+# =============================================================================
+# Ingress Configuration
+# =============================================================================
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  hosts:
+    - host: ""
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: web
+  tls: []
+
+# =============================================================================
+# Gateway API - HTTPRoute Configuration
+# =============================================================================
+# Requires a Gateway API implementation (e.g. Envoy Gateway, Istio, Cilium,
+# NGINX Gateway Fabric, Traefik) and a Gateway resource to be deployed.
+#
+# When httpRoute.rules is empty (default), the chart auto-generates two rules:
+#   /api  → backend service
+#   /     → web frontend service
+# Set httpRoute.rules explicitly to override this behaviour.
+httpRoute:
+  # -- Enable creation of HTTPRoute resource
+  enabled: true
+
+  # -- Name override for HTTPRoute resource
+  nameOverride: ""
+
+  # -- Hostnames to match (leave empty to match all hostnames on the Gateway)
+  # Example:
+  #   hostnames:
+  #     - fynncloud.example.com
+  hostnames: []
+
+  # -- Parent Gateway references (required — attaches the route to a Gateway)
+  # Example:
+  #   parentRefs:
+  #     - name: my-gateway
+  #       namespace: gateway-system
+  #       sectionName: https     # optional: target a specific listener
+  parentRefs:
+    - name: main-gateway
+      namespace: envoy-gateway-system
+
+  # -- Annotations for HTTPRoute resource
+  annotations: {}
+
+  # -- Labels for HTTPRoute resource
+  labels: {}
+
+  # -- Explicit routing rules (overrides auto-generated rules when set)
+  # Each rule needs `matches` and `backendRefs`. Optional `filters`.
+  #
+  # Example:
+  #   rules:
+  #     - matches:
+  #         - path:
+  #             type: PathPrefix
+  #             value: /api
+  #       filters:
+  #         - type: RequestHeaderModifier
+  #           requestHeaderModifier:
+  #             set:
+  #               - name: X-Forwarded-Proto
+  #                 value: https
+  #       backendRefs:
+  #         - name: my-backend
+  #           port: 8080
+  #           weight: 100
+  #     - matches:
+  #         - path:
+  #             type: PathPrefix
+  #             value: /
+  #       backendRefs:
+  #         - name: my-web
+  #           port: 80
+  rules: []
