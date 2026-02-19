@@ -14,10 +14,14 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- with .Values.httpRoute.parentRefs }}
   parentRefs:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- if .Values.httpRoute.parentRefs }}
+    {{- toYaml .Values.httpRoute.parentRefs | nindent 4 }}
+    {{- else if .Values.gateway.enabled }}
+    {{- /* Auto-reference the in-chart Gateway when no explicit parentRefs are set */}}
+    - name: {{ include "fynncloud.gateway.name" . }}
+      namespace: {{ .Release.Namespace }}
+    {{- end }}
   {{- with .Values.httpRoute.hostnames }}
   hostnames:
     {{- toYaml . | nindent 4 }}

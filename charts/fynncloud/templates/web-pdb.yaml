@@ -1,0 +1,20 @@
+{{- if .Values.podDisruptionBudget.web.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "fynncloud.fullname" . }}-web
+  labels:
+    {{- include "fynncloud.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  {{- if .Values.podDisruptionBudget.web.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.web.minAvailable }}
+  {{- end }}
+  {{- if .Values.podDisruptionBudget.web.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.web.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "fynncloud.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web
+{{- end }}

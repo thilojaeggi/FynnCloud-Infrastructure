@@ -2,42 +2,63 @@
 ║                    FynnCloud deployed!                          ║
 ╚══════════════════════════════════════════════════════════════════╝
 
-{{- if .Values.ingress.enabled }}
-Your FynnCloud instance is available via Ingress.
+{{- if .Values.gateway.enabled }}
 
-Get the ingress address:
-  kubectl get ingress {{ include "fynncloud.fullname" . }} -n {{ .Release.Namespace }}
+🌐 Gateway API
+   Gateway: {{ include "fynncloud.gateway.name" . }} ({{ .Values.gateway.gatewayClassName }})
+   Get the gateway address:
+     kubectl get gateway {{ include "fynncloud.gateway.name" . }} -n {{ .Release.Namespace }}
+
+{{- if .Values.httpRoute.enabled }}
+   HTTPRoute: {{ include "fynncloud.httpRoute.name" . }}
+     kubectl get httproute {{ include "fynncloud.httpRoute.name" . }} -n {{ .Release.Namespace }}
+{{- end }}
+{{- else if .Values.httpRoute.enabled }}
+
+🌐 Gateway API (HTTPRoute only — using external Gateway)
+   HTTPRoute: {{ include "fynncloud.httpRoute.name" . }}
+   Get route status:
+     kubectl get httproute {{ include "fynncloud.httpRoute.name" . }} -n {{ .Release.Namespace }}
+
+{{- else if .Values.ingress.enabled }}
+
+🌐 Ingress (legacy)
+   Get the ingress address:
+     kubectl get ingress {{ include "fynncloud.fullname" . }} -n {{ .Release.Namespace }}
 
 {{- range .Values.ingress.hosts }}
 {{- if .host }}
-  URL: http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+   URL: http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
 {{- end }}
 {{- end }}
 {{- else }}
 
-No Ingress was created. To access FynnCloud, set up your own Ingress
-or port-forward the services:
+⚠️  No networking configured. To access FynnCloud, enable one of:
+    - gateway.enabled + httpRoute.enabled  (recommended)
+    - httpRoute.enabled (with external Gateway)
+    - ingress.enabled (legacy)
 
-  Backend: kubectl port-forward svc/{{ include "fynncloud.fullname" . }}-backend {{ .Values.backend.service.port }}:{{ .Values.backend.service.port }} -n {{ .Release.Namespace }}
-  Web:     kubectl port-forward svc/{{ include "fynncloud.fullname" . }}-web {{ .Values.web.service.port }}:{{ .Values.web.service.port }} -n {{ .Release.Namespace }}
+   Or port-forward the services:
+     Backend: kubectl port-forward svc/{{ include "fynncloud.fullname" . }}-backend {{ .Values.backend.service.port }}:{{ .Values.backend.service.port }} -n {{ .Release.Namespace }}
+     Web:     kubectl port-forward svc/{{ include "fynncloud.fullname" . }}-web {{ .Values.web.service.port }}:{{ .Values.web.service.port }} -n {{ .Release.Namespace }}
 {{- end }}
 
 {{- if .Values.cnpg.enabled }}
 
-✅ CloudNativePG Enabled
-   The chart has deployed a 'Cluster' resource named: {{ include "fynncloud.fullname" . }}-{{ .Values.cnpg.name }}
-   
-   ⚠️  IMPORTANT: The CloudNativePG Operator MUST be installed in your cluster
-       for the database to be created.
+✅ CloudNativePG
+   Cluster: {{ include "fynncloud.fullname" . }}-{{ .Values.cnpg.name }} ({{ .Values.cnpg.instances }} instances)
+
+   ⚠️  The CloudNativePG Operator must be installed in your cluster.
        See: https://cloudnative-pg.io/documentation/
-   
+
    Connection:
-     - Service: {{ include "fynncloud.postgresql.host" . }}
-     - Secret:  {{ include "fynncloud.postgresql.secretName" . }}
+     Service: {{ include "fynncloud.postgresql.host" . }}
+     Secret:  {{ include "fynncloud.postgresql.secretName" . }}
 {{- else if .Values.externalPostgresql.host }}
 
-Using external PostgreSQL at {{ .Values.externalPostgresql.host }}:{{ .Values.externalPostgresql.port }}
+📦 External PostgreSQL
+   Host: {{ .Values.externalPostgresql.host }}:{{ .Values.externalPostgresql.port }}
 {{- end }}
 
 ⚠️  Remember to change default passwords before going to production:
-  - backend.env.JWT_SECRET
+    - backend.env.JWT_SECRET

@@ -1,6 +1,18 @@
 apiVersion: v2
 name: fynncloud
-description: A Helm chart for deploying FynnCloud Infrastructure with CloudNativePG
+description: A Helm chart for deploying FynnCloud — self-hosted cloud storage
 type: application
-version: 0.3.0
+version: 0.4.0
 appVersion: "1.0.0"
+kubeVersion: ">=1.27.0-0"
+home: https://fynncloud.ch
+sources:
+  - https://github.com/FynnCloudProject
+keywords:
+  - fynncloud
+  - cloud-storage
+  - self-hosted
+  - gateway-api
+  - cloudnative-pg
+maintainers:
+  - name: Thilo Jaeggi

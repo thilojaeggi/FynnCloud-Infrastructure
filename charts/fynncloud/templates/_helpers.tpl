@@ -49,6 +49,39 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+ServiceAccount name
+*/}}
+{{- define "fynncloud.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "fynncloud.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Gateway resource name
+*/}}
+{{- define "fynncloud.gateway.name" -}}
+{{- if .Values.gateway.nameOverride }}
+{{- .Values.gateway.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-gateway" (include "fynncloud.fullname" .) }}
+{{- end }}
+{{- end }}
+
+{{/*
+HTTPRoute resource name
+*/}}
+{{- define "fynncloud.httpRoute.name" -}}
+{{- if .Values.httpRoute.nameOverride }}
+{{- .Values.httpRoute.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- include "fynncloud.fullname" . }}
+{{- end }}
+{{- end }}
+
+{{/*
 PostgreSQL host
 - CNPG Default RW Service: [cluster-name]-rw
 - External: .Values.externalPostgresql.host
@@ -111,7 +144,7 @@ PostgreSQL Secret Name
 
 {{/*
 PostgreSQL Password Key
-- CNPG App Secret has 'password' key (along with 'username', 'dbname', etc.)
+- CNPG App Secret has 'password' key
 - External/Managed has 'postgres-password'
 */}}
 {{- define "fynncloud.postgresql.secretKey" -}}
@@ -145,12 +178,11 @@ PostgreSQL SSL Mode
 {{- end }}
 
 {{/*
-HTTPRoute resource name
+Image pull secrets — merges global with any per-component secrets if needed
 */}}
-{{- define "fynncloud.httpRoute.name" -}}
-{{- if .Values.httpRoute.nameOverride }}
-{{- .Values.httpRoute.nameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- include "fynncloud.fullname" . }}
+{{- define "fynncloud.imagePullSecrets" -}}
+{{- with .Values.global.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- end }}

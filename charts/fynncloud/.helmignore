@@ -1,12 +1,10 @@
 # Patterns to ignore when packaging Helm charts.
-#
-# There is no reason to include the .git directory when packaging.
 .git/
 .gitignore
 .DS_Store
-# Patterns to ignore when packaging Helm charts.
-#
-# There is no reason to include the .git directory when packaging.
-.git/
-.gitignore
-.DS_Store
+.vscode/
+.idea/
+*.swp
+*.bak
+*.tmp
+*.orig

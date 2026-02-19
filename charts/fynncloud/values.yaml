@@ -1,8 +1,29 @@
 # =============================================================================
-# FynnCloud Helm Chart - values.yaml (CloudNativePG Edition)
+# FynnCloud Helm Chart — values.yaml
 # =============================================================================
 nameOverride: ""
 fullnameOverride: ""
+
+# -- Global settings shared across all sub-components
+global:
+  # -- Pull secrets for private container registries
+  imagePullSecrets: []
+  #   - name: my-registry-secret
+  # -- Default StorageClass (components can override individually)
+  storageClass: ""
+
+# =============================================================================
+# Service Account
+# =============================================================================
+serviceAccount:
+  # -- Create a ServiceAccount for pods
+  create: true
+  # -- Annotations to add (e.g. for IAM roles)
+  annotations: {}
+  # -- Override the generated name
+  name: ""
+  # -- Automount API credentials
+  automountServiceAccountToken: false
 
 # =============================================================================
 # CloudNativePG Configuration
@@ -11,20 +32,19 @@ fullnameOverride: ""
 # https://cloudnative-pg.io/
 cnpg:
   enabled: true
-  name: "cluster" # Suffix for the Cluster resource name
+  # -- Suffix for the Cluster resource name
+  name: "cluster"
   instances: 3
 
-  # SSL Mode for connection string (disable, require, verify-ca, etc.)
+  # -- SSL Mode for connection string (disable, require, verify-ca, etc.)
   sslMode: "disable"
 
-  # Storage configuration for the PVCs
+  # -- Storage configuration for the PVCs
   storage:
     size: 1Gi
     # storageClass: ""
 
-  # Bootstrap configuration
-  # By default, creates a new database `app` with user `app`.
-  # We override this to match our app name.
+  # -- Bootstrap configuration
   bootstrap:
     initdb:
       database: fynncloud
@@ -32,7 +52,7 @@ cnpg:
       secret:
         name: fynncloud-cnpg-initial-password
 
-  # Backup configuration (example structure, adjust as needed)
+  # -- Backup configuration (example structure, adjust as needed)
   # backup:
   #   barmanObjectStore:
   #     destinationPath: s3://bucket/path
@@ -42,7 +62,7 @@ cnpg:
 # =============================================================================
 # External PostgreSQL
 # =============================================================================
-# Use this when you have an existing PostgreSQL instance (e.g. RDS, Cloud SQL)
+# Use when you have an existing PostgreSQL instance (e.g. RDS, Cloud SQL)
 # and don't want the chart to deploy CNPG. Requires cnpg.enabled=false.
 externalPostgresql:
   host: ""
@@ -51,6 +71,7 @@ externalPostgresql:
   password: ""
   database: fynncloud
   sslMode: "require"
+  # -- Name of an existing Secret containing the key `postgres-password`
   existingSecret: ""
 
 # =============================================================================
@@ -63,10 +84,20 @@ backend:
     tag: latest
     pullPolicy: Always
   replicas: 3
+
+  # -- Deployment strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
   service:
     type: ClusterIP
     port: 8080
-  resources: {}
+    annotations: {}
+
+  # -- Application environment variables
   env:
     APP_NAME: "FynnCloud"
     PRIMARY_COLOR: "#007bff"
@@ -75,12 +106,85 @@ backend:
     FRONTEND_URL: "http://localhost"
     MAX_CHUNK_SIZE: "100"
     MAX_BODY_SIZE: "100"
+
+  # -- Name of an existing Secret with a `jwt-secret` key
   existingSecret: ""
+
+  # -- Additional environment variables (list of name/value or valueFrom)
+  extraEnv: []
+  #   - name: MY_VAR
+  #     value: "my-value"
+
+  # -- Extra volume mounts for the backend container
+  extraVolumeMounts: []
+  # -- Extra volumes for the backend pod
+  extraVolumes: []
+
   storage:
     enabled: true
     size: 5Gi
     accessMode: ReadWriteOnce
     # storageClass: ""
+
+  resources: {}
+  #   requests:
+  #     cpu: 100m
+  #     memory: 128Mi
+  #   limits:
+  #     cpu: 500m
+  #     memory: 512Mi
+
+  # -- Pod-level security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+
+  # -- Container-level security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+
+  # -- Startup probe (allows slow starts without killing the pod)
+  startupProbe:
+    httpGet:
+      path: /api/info
+      port: http
+    failureThreshold: 30
+    periodSeconds: 5
+
+  livenessProbe:
+    httpGet:
+      path: /api/info
+      port: http
+    periodSeconds: 30
+
+  readinessProbe:
+    httpGet:
+      path: /api/info
+      port: http
+    periodSeconds: 10
+
+  # -- Additional pod annotations
+  podAnnotations: {}
+  # -- Additional pod labels
+  podLabels: {}
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # -- Topology spread constraints for HA
+  topologySpreadConstraints: []
+  #   - maxSkew: 1
+  #     topologyKey: kubernetes.io/hostname
+  #     whenUnsatisfiable: DoNotSchedule
+  #     labelSelector:
+  #       matchLabels:
+  #         app.kubernetes.io/component: backend
 
 # =============================================================================
 # Web Frontend Configuration
@@ -92,34 +196,98 @@ web:
     tag: latest
     pullPolicy: Always
   replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
   service:
     type: ClusterIP
     port: 80
+    annotations: {}
+
+  # -- Additional environment variables
+  extraEnv: []
+  # -- Extra volume mounts for the web container
+  extraVolumeMounts: []
+  # -- Extra volumes for the web pod
+  extraVolumes: []
+
   resources: {}
 
-# =============================================================================
-# Ingress Configuration
-# =============================================================================
-ingress:
-  enabled: false
-  className: nginx
-  annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-  hosts:
-    - host: ""
-      paths:
-        - path: /api
-          pathType: Prefix
-          service: backend
-        - path: /
-          pathType: Prefix
-          service: web
-  tls: []
+  podSecurityContext: {}
+  securityContext: {}
+
+  startupProbe:
+    httpGet:
+      path: /
+      port: http
+    failureThreshold: 30
+    periodSeconds: 5
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    periodSeconds: 30
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    periodSeconds: 10
+
+  podAnnotations: {}
+  podLabels: {}
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
 
 # =============================================================================
-# Gateway API - HTTPRoute Configuration
+# Gateway API — Gateway Resource (optional)
+# =============================================================================
+# Creates a Gateway resource in-chart. Disable this and configure
+# httpRoute.parentRefs manually if you bring your own Gateway.
+gateway:
+  enabled: false
+  # -- Name override for the Gateway resource
+  nameOverride: ""
+  # -- GatewayClass name (e.g. "eg" for Envoy Gateway, "istio", "cilium")
+  gatewayClassName: "eg"
+  # -- Annotations for the Gateway resource
+  annotations: {}
+  # -- Labels for the Gateway resource
+  labels: {}
+  # -- Gateway listeners
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+    # - name: https
+    #   protocol: HTTPS
+    #   port: 443
+    #   tls:
+    #     mode: Terminate
+    #     certificateRefs:
+    #       - kind: Secret
+    #         name: my-tls-secret
+    #   allowedRoutes:
+    #     namespaces:
+    #       from: Same
+  # -- Addresses (optional, e.g. for static IP)
+  addresses: []
+  #   - type: IPAddress
+  #     value: "1.2.3.4"
+
+# =============================================================================
+# Gateway API — HTTPRoute Configuration
 # =============================================================================
 # Requires a Gateway API implementation (e.g. Envoy Gateway, Istio, Cilium,
 # NGINX Gateway Fabric, Traefik) and a Gateway resource to be deployed.
@@ -130,7 +298,7 @@ ingress:
 # Set httpRoute.rules explicitly to override this behaviour.
 httpRoute:
   # -- Enable creation of HTTPRoute resource
-  enabled: true
+  enabled: false
 
   # -- Name override for HTTPRoute resource
   nameOverride: ""
@@ -142,14 +310,14 @@ httpRoute:
   hostnames: []
 
   # -- Parent Gateway references (required — attaches the route to a Gateway)
+  # When gateway.enabled=true you can leave this empty and the chart will
+  # auto-reference the in-chart Gateway.
   # Example:
   #   parentRefs:
   #     - name: my-gateway
   #       namespace: gateway-system
   #       sectionName: https     # optional: target a specific listener
-  parentRefs:
-    - name: main-gateway
-      namespace: envoy-gateway-system
+  parentRefs: []
 
   # -- Annotations for HTTPRoute resource
   annotations: {}
@@ -184,3 +352,64 @@ httpRoute:
   #         - name: my-web
   #           port: 80
   rules: []
+
+# =============================================================================
+# Ingress Configuration (legacy — prefer Gateway API)
+# =============================================================================
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  hosts:
+    - host: ""
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: web
+  tls: []
+
+# =============================================================================
+# Autoscaling (HorizontalPodAutoscaler)
+# =============================================================================
+autoscaling:
+  backend:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+  web:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+# =============================================================================
+# Pod Disruption Budgets
+# =============================================================================
+podDisruptionBudget:
+  backend:
+    enabled: false
+    # -- Minimum available pods (mutually exclusive with maxUnavailable)
+    minAvailable: 1
+    # maxUnavailable: 1
+  web:
+    enabled: false
+    minAvailable: 1
+
+# =============================================================================
+# Network Policies
+# =============================================================================
+networkPolicy:
+  enabled: false
+  # -- Additional ingress rules
+  extraIngress: []
+  # -- Additional egress rules
+  extraEgress: []

@@ -1,3 +1,4 @@
+{{- if .Values.web.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -5,6 +6,10 @@ metadata:
   labels:
     {{- include "fynncloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: web
+  {{- with .Values.web.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.web.service.type }}
   ports:
@@ -15,3 +20,4 @@ spec:
   selector:
     {{- include "fynncloud.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: web
+{{- end }}
