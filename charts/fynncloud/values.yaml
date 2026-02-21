@@ -115,6 +115,17 @@ backend:
   # -- Name of an existing Secret with a `jwt-secret` key
   existingSecret: ""
 
+  # -- Database migration job configuration
+  migrate:
+    enabled: true
+    # -- Command to run the database migrations
+    command: ["./FynnCloudServer", "migrate", "-y"]
+    # -- Annotations to apply to the migration pod
+    podAnnotations:
+      helm.sh/hook: pre-install,pre-upgrade
+      helm.sh/hook-weight: "-5"
+      helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+
   # -- Additional environment variables (list of name/value or valueFrom)
   extraEnv: []
   #   - name: MY_VAR
