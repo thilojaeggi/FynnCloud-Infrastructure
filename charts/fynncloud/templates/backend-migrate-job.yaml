@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "fynncloud.fullname" . }}-backend-migrate
+  name: {{ include "fynncloud.fullname" . }}-backend-migrate-{{ .Release.Revision }}
   labels:
     {{- include "fynncloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: backend-migrate
