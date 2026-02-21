@@ -121,11 +121,11 @@ backend:
     # -- Command to run the database migrations
     command: ["./FynnCloudServer", "migrate", "-y"]
     # -- Annotations to apply to the migration pod (or job if moved)
-    # If the database is provided by this chart (CloudNativePG), DO NOT use pre-install hooks,
-    # because the database will not exist yet. Instead, use ArgoCD sync waves or normal deployment
-    # relying on CrashLoopBackOff.
-    podAnnotations: {}
-      # argocd.argoproj.io/sync-wave: "1"
+    # Using ArgoCD Sync hooks to bypass Job immutability constraints.
+    # The Sync hook safely runs alongside other resources being created.
+    podAnnotations:
+      argocd.argoproj.io/hook: Sync
+      argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 
   # -- Additional environment variables (list of name/value or valueFrom)
   extraEnv: []
