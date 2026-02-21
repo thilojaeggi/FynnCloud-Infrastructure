@@ -195,13 +195,13 @@ backend:
   tolerations: []
   affinity: {}
   # -- Topology spread constraints for HA
-  topologySpreadConstraints: []
-  #   - maxSkew: 1
-  #     topologyKey: kubernetes.io/hostname
-  #     whenUnsatisfiable: DoNotSchedule
-  #     labelSelector:
-  #       matchLabels:
-  #         app.kubernetes.io/component: backend
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: backend
 
 # =============================================================================
 # Web Frontend Configuration
@@ -261,8 +261,13 @@ web:
 
   nodeSelector: {}
   tolerations: []
-  affinity: {}
-  topologySpreadConstraints: []
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: web
 
 # =============================================================================
 # Gateway API — Gateway Resource (optional)
